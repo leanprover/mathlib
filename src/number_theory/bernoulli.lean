@@ -52,9 +52,9 @@ then defined as `bernoulli = (-1)^n * bernoulli'`.
 -/
 
 open_locale big_operators
+open_locale nat
 open nat
 open finset
-open_locale nat
 
 /-!
 
@@ -66,7 +66,7 @@ open_locale nat
 the $n$-th Bernoulli number $B_n$ is defined recursively via
 $$B_n = 1 - \sum_{k < n} \binom{n}{k}\frac{B_k}{n+1-k}$$ -/
 def bernoulli' : ℕ → ℚ :=
-well_founded.fix nat.lt_wf
+well_founded.fix lt_wf
   (λ n bernoulli', 1 - ∑ k : fin n, n.choose k / (n - k + 1) * bernoulli' k k.2)
 
 lemma bernoulli'_def' (n : ℕ) :
@@ -74,19 +74,19 @@ lemma bernoulli'_def' (n : ℕ) :
 well_founded.fix_eq _ _ _
 
 lemma bernoulli'_def (n : ℕ) :
-  bernoulli' n = 1 - ∑ k in finset.range n, (n.choose k) / (n - k + 1) * bernoulli' k :=
+  bernoulli' n = 1 - ∑ k in range n, (n.choose k) / (n - k + 1) * bernoulli' k :=
 by { rw [bernoulli'_def', ← fin.sum_univ_eq_sum_range], refl }
 
 lemma bernoulli'_spec (n : ℕ) :
-  ∑ k in finset.range n.succ, (n.choose (n - k) : ℚ) / (n - k + 1) * bernoulli' k = 1 :=
+  ∑ k in range n.succ, (n.choose (n - k) : ℚ) / (n - k + 1) * bernoulli' k = 1 :=
 begin
-  rw [finset.sum_range_succ, bernoulli'_def n, nat.sub_self],
-  conv in (nat.choose _ (_ - _)) { rw choose_symm (le_of_lt (finset.mem_range.1 H)) },
+  rw [sum_range_succ, bernoulli'_def n, nat.sub_self],
+  conv in (nat.choose _ (_ - _)) { rw choose_symm (le_of_lt (mem_range.1 H)) },
   simp only [one_mul, cast_one, sub_self, sub_add_cancel, choose_zero_right, zero_add, div_one],
 end
 
 lemma bernoulli'_spec' (n : ℕ) :
-  ∑ k in finset.nat.antidiagonal n,
+  ∑ k in nat.antidiagonal n,
   ((k.1 + k.2).choose k.2 : ℚ) / (k.2 + 1) * bernoulli' k.1 = 1 :=
 begin
   refine ((nat.sum_antidiagonal_eq_sum_range_succ_mk _ n).trans _).trans (bernoulli'_spec n),
@@ -105,24 +105,24 @@ section examples
 
 open finset
 
-@[simp] lemma bernoulli'_zero  : bernoulli' 0 = 1   := rfl
+@[simp] lemma bernoulli'_zero : bernoulli' 0 = 1 := rfl
 
-@[simp] lemma bernoulli'_one   : bernoulli' 1 = 1/2 :=
+@[simp] lemma bernoulli'_one : bernoulli' 1 = 1/2 :=
 begin
     rw [bernoulli'_def, sum_range_one], norm_num
 end
 
-@[simp] lemma bernoulli'_two   : bernoulli' 2 = 1/6 :=
+@[simp] lemma bernoulli'_two : bernoulli' 2 = 1/6 :=
 begin
   rw [bernoulli'_def, sum_range_succ, sum_range_one], norm_num
 end
 
-@[simp] lemma bernoulli'_three : bernoulli' 3 = 0   :=
+@[simp] lemma bernoulli'_three : bernoulli' 3 = 0 :=
 begin
   rw [bernoulli'_def, sum_range_succ, sum_range_succ, sum_range_one], norm_num
 end
 
-@[simp] lemma bernoulli'_four  : bernoulli' 4 = -1/30 :=
+@[simp] lemma bernoulli'_four : bernoulli' 4 = -1/30 :=
 begin
   rw [bernoulli'_def, sum_range_succ, sum_range_succ, sum_range_succ, sum_range_one],
   rw (show nat.choose 4 2 = 6, from dec_trivial), -- shrug
@@ -134,7 +134,7 @@ end examples
 open nat finset
 
 @[simp] lemma sum_bernoulli' (n : ℕ) :
-  ∑ k in finset.range n, (n.choose k : ℚ) * bernoulli' k = n :=
+  ∑ k in range n, (n.choose k : ℚ) * bernoulli' k = n :=
 begin
   cases n with n, { simp },
   rw [sum_range_succ, bernoulli'_def],
@@ -204,6 +204,7 @@ open ring_hom
 /-- Odd Bernoulli numbers (greater than 1) are zero. -/
 theorem bernoulli'_odd_eq_zero {n : ℕ} (h_odd : odd n) (hlt : 1 < n) : bernoulli' n = 0 :=
 begin
+  --have f := bernoulli'_power_series,
   have f : power_series.mk (λ n, (bernoulli' n / n!)) * (exp ℚ - 1) = X * exp ℚ,
   { simpa [bernoulli'_power_series] using bernoulli'_power_series_mul_exp_sub_one ℚ },
   have g : eval_neg_hom (mk (λ (n : ℕ), bernoulli' n / ↑(n!)) * (exp ℚ - 1)) * (exp ℚ) =
@@ -211,8 +212,8 @@ begin
   rw [map_mul, map_sub, map_one, map_mul, mul_assoc, sub_mul, mul_assoc (eval_neg_hom X) _ _,
     mul_comm (eval_neg_hom (exp ℚ)) (exp ℚ), exp_mul_exp_neg_eq_one, eval_neg_hom_X, mul_one,
     one_mul] at g,
-  suffices h : (mk (λ (n : ℕ), bernoulli' n / ↑(n!)) - eval_neg_hom (mk (λ (n : ℕ),
-    bernoulli' n / ↑(n!))) ) * (exp ℚ - 1) = X * (exp ℚ - 1),
+  suffices h : (mk (λ (n : ℕ), bernoulli' n / ↑n!) - eval_neg_hom (mk (λ (n : ℕ),
+    bernoulli' n / ↑n!)) ) * (exp ℚ - 1) = X * (exp ℚ - 1),
   { rw [mul_eq_mul_right_iff] at h,
     cases h,
     { simp only [eval_neg_hom, rescale, coeff_mk, coe_mk, power_series.ext_iff,
@@ -239,9 +240,9 @@ def bernoulli (n : ℕ) : ℚ := (-1)^n * (bernoulli' n)
 lemma bernoulli'_eq_bernoulli (n : ℕ) : bernoulli' n = (-1)^n * bernoulli n :=
 by simp [bernoulli, ← mul_assoc, ← pow_two, ← pow_mul, mul_comm n 2, pow_mul]
 
-@[simp] lemma bernoulli_zero  : bernoulli 0 = 1 := rfl
+@[simp] lemma bernoulli_zero : bernoulli 0 = 1 := rfl
 
-@[simp] lemma bernoulli_one   : bernoulli 1 = -1/2 :=
+@[simp] lemma bernoulli_one : bernoulli 1 = -1/2 :=
 by norm_num [bernoulli, bernoulli'_one]
 
 theorem bernoulli_eq_bernoulli'_of_ne_one {n : ℕ} (hn : n ≠ 1) : bernoulli n = bernoulli' n :=
@@ -328,3 +329,61 @@ begin
   rw [cast_mul, cast_mul, mul_div_mul_right _ _ hj, add_choose, cast_dvd_char_zero],
   exact factorial_mul_factorial_dvd_factorial_add i j,
 end
+
+
+section faulhaber
+
+/-- Faulhabers' theorem: sum of powers. -/
+theorem faulhaber (n p : ℕ) :
+    (range n).sum (λ k, (k : ℚ) ^ p)
+  = (range (p + 1)).sum (λ i, bernoulli i * (p + 1).choose i * n ^ (p + 1 - i) / (p + 1)) :=
+begin
+  have h_cauchy :   mk (λ p, bernoulli p / ↑p!) * mk (λ q, (coeff ℚ (q + 1)) (exp ℚ ^ n))
+  = mk (λ p, (range (p + 1)).sum
+        (λ i, bernoulli i * ↑((p + 1).choose i) * ↑n ^ (p + 1 - i) / ↑(p + 1)!)),
+  { let f := λ a, λ b, bernoulli a / ↑a! * (coeff ℚ (b + 1)) (exp ℚ ^ n),
+    ext q,
+    simp only [power_series.coeff_mul, coeff_mk, cast_mul,
+      nat.sum_antidiagonal_eq_sum_range_succ f],
+    refine sum_congr rfl _,
+    simp_intros m h only [finset.mem_range],
+    have hq : (q.succ! : ℚ) ≠ 0 := by exact_mod_cast q.succ.factorial_ne_zero,
+    have hqm1 : q - m + 1 = q + 1 - m,
+    { rw nat.sub_add_comm,
+      exact le_of_lt_succ h },
+    simp only [f, exp_pow_eq_rescale_exp, rescale, one_div, coeff_mk, ring_hom.coe_mk, coeff_exp,
+      ring_hom.id_apply, cast_mul, rat.algebra_map_rat_rat],
+    rw [choose_eq_factorial_div_factorial h.le, eq_comm, div_eq_iff hq, succ_eq_add_one,
+      mul_assoc _ _ ↑(q.succ!), mul_comm _ ↑(q.succ!), ←mul_assoc, div_mul_eq_mul_div,
+      mul_comm (n ^ (q - m + 1) : ℚ), ←mul_assoc _ _ (n ^ (q - m + 1) : ℚ), ←one_div, mul_one_div,
+      div_div_eq_div_mul, hqm1, cast_dvd, cast_mul],
+    { ring },
+    { exact factorial_mul_factorial_dvd_factorial h.le },
+    { simp [not_false_iff, factorial_ne_zero] }, },
+  have hpseq : power_series.mk (λ p, (range n).sum (λ k, (k : ℚ) ^ p * algebra_map ℚ ℚ p!⁻¹))
+  = power_series.mk (λ p, (range (p + 1)).sum
+      (λ i, bernoulli i * (p + 1).choose i * n ^ (p + 1 - i) / (p + 1)!)),
+  {  have hexp : exp ℚ - 1 ≠ 0,
+    { simp only [exp, power_series.ext_iff, linear_map.map_zero, one_div, coeff_mk, coeff_one,
+      id_apply, linear_map.map_sub, ne, not_forall, rat.algebra_map_rat_rat],
+      use 1,
+      simp only [factorial_one, sub_zero, if_false, inv_one, not_false_iff, one_ne_zero,
+        cast_one], },
+    have h_r : exp ℚ ^ n - 1 = X * mk (λ p, coeff ℚ (p + 1) (exp ℚ ^ n)),
+    { have h_const : C ℚ (constant_coeff ℚ (exp ℚ ^ n)) = 1 := by simp,
+      rw [←h_const, sub_const_eq_X_mul_shift], },
+    rw [← mul_right_inj' hexp, ←exp_pow_sum n, mul_comm, ←geom_series_def, geom_sum_mul (exp ℚ) n,
+      h_r, ←bernoulli_power_series_mul_exp_sub_one],
+    simp only [bernoulli_power_series, mul_comm _ (exp ℚ - 1), mul_assoc, h_cauchy, id_apply,
+      factorial_succ, rat.algebra_map_rat_rat], },
+  have hne_zero : (p.factorial : ℚ) ≠ 0 := by simp [factorial_ne_zero],
+  simp only [power_series.ext_iff, cast_succ, coeff_mk, cast_mul, id_apply, rat.algebra_map_rat_rat]
+    at hpseq,
+  specialize hpseq p,
+  rw [←sum_mul, ←one_div, mul_one_div, div_eq_iff hne_zero] at hpseq,
+  simp only [hpseq, sum_mul],
+  refine sum_congr rfl (λ x hx, _),
+  field_simp [← mul_assoc _ _ (↑p!), mul_right_comm _ (↑p!), cast_add_one_ne_zero p],
+end
+
+end faulhaber
