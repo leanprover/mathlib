@@ -1203,9 +1203,117 @@ begin
     ext, exact hm x }
 end
 
+lemma nondegenerate_restrict_of_inf_orthogonal_le_bot
+  (B : bilin_form R M) (hB : sym_bilin_form.is_sym B)
+  {W : submodule R M} (hW : W ⊓ B.orthogonal W ≤ ⊥) :
+  (B.restrict W).nondegenerate :=
+begin
+  rintro ⟨x, hx⟩ hB₁,
+  rw [submodule.mk_eq_zero, ← submodule.mem_bot R],
+  refine hW ⟨hx, λ y hy, _⟩,
+  specialize hB₁ ⟨y, hy⟩,
+  rwa [restrict_apply, submodule.coe_mk, submodule.coe_mk, hB] at hB₁
+end
+
 section
 
 variable [finite_dimensional K V]
+
+open finite_dimensional
+
+@[simps apply]
+def to_lin_restrict (B : bilin_form R₃ M₃) (W : submodule R₃ M₃) :
+  W →ₗ[R₃] module.dual R₃ M₃ :=
+{ to_fun := λ w, B.to_lin.to_fun (w : M₃),
+  map_add' := by simp,
+  map_smul' := by simp } .
+
+lemma to_lin_restrict_ker_eq_inf_orthogonal
+  (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
+  (B.to_lin_restrict W).ker.map W.subtype = (W ⊓ B.orthogonal ⊤ : subspace K V) :=
+begin
+  ext x, split; intro hx,
+  { rcases hx with ⟨⟨x, hx⟩, hker, rfl⟩,
+    erw linear_map.mem_ker at hker,
+    split,
+    { simp [hx] },
+    { intros y _,
+      rw [is_ortho, hB],
+      change (B.to_lin_restrict W) ⟨x, hx⟩ y = 0,
+      rw hker, refl } },
+  { simp_rw [submodule.mem_map, linear_map.mem_ker],
+    refine ⟨⟨x, hx.1⟩, _, rfl⟩,
+    ext y, change B x y = 0,
+    rw hB,
+    exact hx.2 _ submodule.mem_top }
+end
+
+lemma baz (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
+  findim K ((B.to_lin_restrict W).ker.map W.subtype) =
+  findim K (B.to_lin_restrict W).ker := sorry
+
+def foo (Φ : submodule R₃ (module.dual R₃ M₃)) : submodule R₃ M₃ :=
+{ carrier := { v | ∀ φ : Φ, φ v = 0 },
+  zero_mem' := λ _, linear_map.map_zero _,
+  add_mem' := λ _ _ hv hw φ,
+    by erw [linear_map.map_add, hv φ, hw φ, zero_add _],
+  smul_mem' := λ c v hv φ,
+    by erw [linear_map.map_smul, hv φ, smul_zero] }
+
+lemma mem_foo {Φ : submodule R₃ (module.dual R₃ M₃)} (x : M₃) :
+  x ∈ foo Φ ↔ ∀ φ : Φ, φ x = 0 := iff.rfl
+
+lemma to_lin_restrict_range_eq_dual_annihilator
+  (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
+  foo (B.to_lin_restrict W).range = B.orthogonal W :=
+begin
+  ext x, split; rw [mem_orthogonal_iff]; intro hx,
+  { intros y hy,
+    rw mem_foo at hx,
+    refine hx ⟨B.to_lin_restrict W ⟨y, hy⟩, ⟨y, hy⟩, _, rfl⟩,
+    simp only [submodule.top_coe] },
+  { rw mem_foo,
+    rintro ⟨_, ⟨w, hw⟩, _, rfl⟩,
+    exact hx w hw }
+end
+
+lemma bar (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
+  findim K (foo (B.to_lin_restrict W).range) +
+  findim K (B.to_lin_restrict W).range = findim K V := sorry
+
+lemma findim_add_findim_orthogonal
+  {B : bilin_form K V} {W : subspace K V} (hB₁ : sym_bilin_form.is_sym B) :
+  findim K W + findim K (B.orthogonal W) =
+  findim K V + findim K (W ⊓ B.orthogonal ⊤ : subspace K V) :=
+begin
+  rw [← to_lin_restrict_ker_eq_inf_orthogonal _ _ hB₁,
+      ← to_lin_restrict_range_eq_dual_annihilator _ _ hB₁,
+      ← bar _ W hB₁, baz _ _ hB₁, add_assoc,
+      linear_map.findim_range_add_findim_ker, add_comm],
+end
+
+lemma restrict_nondegenerate_of_is_compl_orthogonal
+  {B : bilin_form K V} {W : subspace K V}
+  (hB₁ : sym_bilin_form.is_sym B) (hB₂ : (B.restrict W).nondegenerate) :
+  is_compl W (B.orthogonal W) :=
+begin
+  have : W ⊓ B.orthogonal W = ⊥,
+  { rw eq_bot_iff,
+    intros x hx,
+    obtain ⟨hx₁, hx₂⟩ := submodule.mem_inf.1 hx,
+    refine subtype.mk_eq_mk.1 (hB₂ ⟨x, hx₁⟩ _),
+    rintro ⟨n, hn⟩,
+    rw [restrict_apply, submodule.coe_mk, submodule.coe_mk, hB₁],
+    exact hx₂ n hn },
+  refine ⟨this ▸ le_refl _, _⟩,
+  { rw top_le_iff,
+    refine finite_dimensional.eq_top_of_findim_eq _,
+    refine le_antisymm (submodule.findim_le _) _,
+    conv_rhs { rw ← add_zero (findim K _) },
+    rw [← findim_bot K V, ← this, submodule.dim_sup_add_dim_inf_eq,
+        findim_add_findim_orthogonal hB₁],
+    exact nat.le.intro rfl }
+end
 
 /-- Given a nondegenerate bilinear form `B` on a finite-dimensional vector space, `B.to_dual` is
 the linear equivalence between a vector space and its dual with the underlying linear map
@@ -1220,7 +1328,7 @@ lemma to_dual_def {B : bilin_form K V} (hB : B.nondegenerate) {m n : V} :
 
 end
 
-/-- The restriction of a symmetric, non-degenerate bilinear form on the orthogonal complement of 
+/-- The restriction of a symmetric, non-degenerate bilinear form on the orthogonal complement of
 the span of a singleton is also non-degenerate. -/
 lemma restrict_orthogonal_span_singleton_nondegenerate (B : bilin_form K V)
   (hB₁ : nondegenerate B) (hB₂ : sym_bilin_form.is_sym B) {x : V} (hx : ¬ B.is_ortho x x) :
