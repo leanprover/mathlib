@@ -127,4 +127,20 @@ add_equiv.apply_symm_apply _ _
 def to_perm : add_aut A →* equiv.perm A :=
 by refine_struct { to_fun := add_equiv.to_equiv }; intros; refl
 
+/-- group conjugation as a group homomorphism into the automorphism group.
+  `conj g h = g + h - g` -/
+def conj [add_group G] : G →+ additive (add_aut G) :=
+{ to_fun := λ g, @additive.of_mul (add_aut G)
+  { to_fun := λ h, g + h - g,
+    inv_fun := λ h, -g + h + g,
+    left_inv := λ _, by simp [add_assoc],
+    right_inv := λ _, by simp [add_assoc],
+    map_add' := by simp [add_assoc, sub_eq_add_neg] },
+  map_add' := λ _ _, by apply additive.to_mul.injective; ext; simp [add_assoc, sub_eq_add_neg],
+  map_zero' := by ext; simpa }
+
+@[simp] lemma conj_apply [add_group G] (g h : G) : conj g h = g + h - g := rfl
+@[simp] lemma conj_symm_apply [add_group G] (g h : G) : (conj g).symm h = -g + h + g := rfl
+@[simp] lemma conj_neg_apply {G : Type*} [add_group G] (g h : G) : (-(conj g)) h = -g + h + g := rfl
+
 end add_aut
