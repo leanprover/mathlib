@@ -1248,20 +1248,42 @@ begin
     exact hx.2 _ submodule.mem_top }
 end
 
+noncomputable def f (p : subspace K V) (q : subspace K p) :
+  q ≃ₗ[K] q.map p.subtype :=
+linear_equiv.of_bijective ((p.subtype.dom_restrict q).cod_restrict _
+  begin
+    rintro ⟨x, hx⟩,
+    refine ⟨x, hx, rfl⟩,
+  end)
+  begin
+    rw linear_map.ker_eq_bot,
+    rintro ⟨⟨_, _⟩, _⟩ ⟨⟨_, _⟩, _⟩ hxy,
+    rw [subtype.mk_eq_mk, subtype.mk_eq_mk],
+    injections with hxy,
+  end
+  begin
+    rw linear_map.range_eq_top,
+    rintro ⟨x, hx⟩,
+    rcases hx with ⟨y, hy, rfl⟩,
+    refine ⟨⟨y, hy⟩, rfl⟩,
+  end
+
+lemma baz' (p : subspace K V) (q : subspace K p) :
+  findim K (q.map p.subtype) = findim K q :=
+begin
+  refine linear_equiv.findim_eq (f p q).symm,
+end
+
 lemma baz (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
   findim K ((B.to_lin_restrict W).ker.map W.subtype) =
-  findim K (B.to_lin_restrict W).ker := sorry
+  findim K (B.to_lin_restrict W).ker := baz' _ _
 
 def foo (Φ : submodule R₃ (module.dual R₃ M₃)) : submodule R₃ M₃ :=
-{ carrier := { v | ∀ φ : Φ, φ v = 0 },
-  zero_mem' := λ _, linear_map.map_zero _,
-  add_mem' := λ _ _ hv hw φ,
-    by erw [linear_map.map_add, hv φ, hw φ, zero_add _],
-  smul_mem' := λ c v hv φ,
-    by erw [linear_map.map_smul, hv φ, smul_zero] }
+((linear_map.applyₗ : M₃ →ₗ[R₃] _).compl₂ Φ.subtype).ker
 
-lemma mem_foo {Φ : submodule R₃ (module.dual R₃ M₃)} (x : M₃) :
-  x ∈ foo Φ ↔ ∀ φ : Φ, φ x = 0 := iff.rfl
+lemma mem_foo_iff {Φ : submodule R₃ (module.dual R₃ M₃)} (x : M₃) :
+  x ∈ foo Φ ↔ ∀ φ : Φ, φ x = 0 :=
+by { simp [foo, linear_map.ext_iff] }
 
 lemma to_lin_restrict_range_eq_dual_annihilator
   (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
@@ -1269,17 +1291,77 @@ lemma to_lin_restrict_range_eq_dual_annihilator
 begin
   ext x, split; rw [mem_orthogonal_iff]; intro hx,
   { intros y hy,
-    rw mem_foo at hx,
+    rw mem_foo_iff at hx,
     refine hx ⟨B.to_lin_restrict W ⟨y, hy⟩, ⟨y, hy⟩, _, rfl⟩,
     simp only [submodule.top_coe] },
-  { rw mem_foo,
+  { rw mem_foo_iff,
     rintro ⟨_, ⟨w, hw⟩, _, rfl⟩,
     exact hx w hw }
 end
 
-lemma bar (B : bilin_form K V) (W : subspace K V) (hB : sym_bilin_form.is_sym B) :
-  findim K (foo (B.to_lin_restrict W).range) +
-  findim K (B.to_lin_restrict W).range = findim K V := sorry
+@[simps apply]
+def foo_to_dual_annihilator (Φ : subspace K (module.dual K V)) :
+  foo Φ →ₗ[K] Φ.dual_annihilator :=
+{ to_fun := λ x,
+  ⟨{ to_fun := λ φ, φ x.1,
+     map_add' := by simp only [forall_const, eq_self_iff_true, linear_map.add_apply],
+     map_smul' := by simp only [forall_const, linear_map.smul_apply, eq_self_iff_true]},
+     begin
+       rw submodule.mem_dual_annihilator,
+       intros φ hφ,
+       exact ((mem_foo_iff _).1 x.2) ⟨φ, hφ⟩,
+     end⟩,
+  map_add' :=
+    begin
+      rintro _ _,
+      ext φ,
+      exact φ.map_add _ _,
+    end,
+  map_smul' :=
+    begin
+      rintro _ _,
+      ext φ,
+      exact φ.map_smul _ _,
+    end }
+
+lemma eq_of_dual_apply_eq (x y : V)
+  (h : ∀ φ : module.dual K V, φ x = φ y) : x = y :=
+begin
+  classical,
+  obtain ⟨b, hb⟩ := exists_is_basis K V,
+  have : ∀ i : b, hb.to_dual _ i x = hb.to_dual _ i y,
+  { intro _, rw h },
+  simp_rw is_basis.to_dual_apply_right at this,
+  exact is_basis.ext_elem hb this,
+end
+
+noncomputable def foo_equiv_dual_annihilator (Φ : subspace K (module.dual K V)) :
+  foo Φ ≃ₗ[K] Φ.dual_annihilator :=
+linear_equiv.of_bijective (foo_to_dual_annihilator Φ)
+begin
+  rw linear_map.ker_eq_bot,
+  rintro ⟨x, hx⟩ ⟨y, hy⟩ hxy,
+  injections with h₁ h₂,
+  rw [subtype.mk_eq_mk],
+  exact eq_of_dual_apply_eq x y (function.funext_iff.1 h₂),
+end
+begin
+  rw linear_map.range_eq_top,
+  rintro ⟨φ, hφ⟩,
+  rw submodule.mem_dual_annihilator at hφ,
+  refine ⟨0, _⟩,
+  ext f,
+  sorry
+end
+
+lemma barz (W : subspace K (module.dual K V)) :
+  findim K W + findim K (foo W) = findim K V :=
+begin
+  rw [(foo_equiv_dual_annihilator W).findim_eq,
+      (W.quot_equiv_annihilator).symm.findim_eq, add_comm,
+      submodule.findim_quotient_add_findim,
+      subspace.dual_findim_eq]
+end
 
 lemma findim_add_findim_orthogonal
   {B : bilin_form K V} {W : subspace K V} (hB₁ : sym_bilin_form.is_sym B) :
@@ -1288,8 +1370,9 @@ lemma findim_add_findim_orthogonal
 begin
   rw [← to_lin_restrict_ker_eq_inf_orthogonal _ _ hB₁,
       ← to_lin_restrict_range_eq_dual_annihilator _ _ hB₁,
-      ← bar _ W hB₁, baz _ _ hB₁, add_assoc,
-      linear_map.findim_range_add_findim_ker, add_comm],
+      ← barz (B.to_lin_restrict W).range, baz _ _ hB₁],
+  conv_rhs { rw [add_comm, ← add_assoc, add_comm (findim K ↥((B.to_lin_restrict W).ker)),
+                 linear_map.findim_range_add_findim_ker] },
 end
 
 lemma restrict_nondegenerate_of_is_compl_orthogonal
