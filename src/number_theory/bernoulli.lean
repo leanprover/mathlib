@@ -386,4 +386,41 @@ begin
   field_simp [← mul_assoc _ _ (↑p!), mul_right_comm _ (↑p!), cast_add_one_ne_zero p],
 end
 
+theorem faulhaber' (n p : ℕ) :
+  (Ico 1 (n + 1)).sum (λ k, (k : ℚ)^p)
+  = (range (p + 1)).sum (λ i, bernoulli' i * (p + 1).choose i * n ^ (p + 1 - i) / (p + 1)) :=
+begin
+  rw [sum_range_succ'],
+  cases p with p hp,
+  { simp, },
+  { rw [sum_range_succ', ← bernoulli_eq_bernoulli'_of_ne_one zero_ne_one],
+  have hb1: bernoulli' (0 + 1) = bernoulli (0 + 1) + 1, { norm_num, },
+  rw [hb1, mul_div_assoc, mul_assoc, add_mul, ← mul_assoc, ← mul_div_assoc, ← add_assoc],
+  have hsum:  ∑ (i : ℕ) in   range p,  bernoulli' (i + 1 + 1) * ↑((p.succ + 1).choose (i + 1 + 1))
+    * ↑n ^ (p.succ + 1 - (i + 1 + 1)) / (↑(p.succ) + 1) =
+              ∑ (i : ℕ) in   range p, bernoulli (i + 1 + 1) * ↑((p.succ + 1).choose (i + 1 + 1))
+    * ↑n ^ (p.succ + 1 - (i + 1 + 1)) / (↑(p.succ) + 1),
+    { refine sum_congr rfl _,
+      intros x h,
+      have hx: x + 1 + 1 ≠ 1,
+      { simp only [add_left_eq_self, add_eq_zero_iff, ne.def, not_false_iff, one_ne_zero,
+        and_false], },
+      simp only [bernoulli_eq_bernoulli'_of_ne_one hx], },
+  rw [hsum],
+  let f := (λ i,    bernoulli (i + 1) * ↑((p.succ + 1).choose (i + 1))
+    * ↑n ^ (p.succ + 1 - (i + 1)) / (↑(p.succ) + 1)),
+    let g :=  (λ i, bernoulli i * (p.succ + 1).choose i * n ^ (p.succ + 1 - i) / (p.succ + 1)),
+  rw [← sum_range_succ' f, add_assoc, add_comm _ (bernoulli 0 * ↑((p.succ + 1).choose 0)
+    * ↑n ^ (p.succ + 1 - 0) / (↑(p.succ) + 1)), ← add_assoc, ← sum_range_succ' g, ← faulhaber],
+   have hn1: 1 ≤ n + 1, { simp only [le_add_iff_nonneg_left 1, nat.zero_le], },
+   rw [sum_Ico_eq_sub (λ k, (k:ℚ) ^ p.succ) hn1, sum_range_succ, succ_eq_add_one],
+   simp only [one_mul, cast_one, cast_add, sub_zero, succ_add_sub_one, cast_zero, add_eq_zero_iff,
+     ne.def, sum_singleton, not_false_iff, one_ne_zero, and_false, zero_pow', choose_one_right,
+     range_one, cast_id],
+  have hp: (p : ℚ) + 1 + 1 ≠ 0,
+  { norm_cast,
+    simp only [add_eq_zero_iff, not_false_iff, one_ne_zero, and_false], },
+  rw [mul_comm, div_mul_cancel _ hp, add_comm], },
+end
+
 end faulhaber
