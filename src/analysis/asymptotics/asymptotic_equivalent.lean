@@ -5,7 +5,6 @@ Authors: Anatole Dedecker
 -/
 import analysis.asymptotics.asymptotics
 import analysis.normed_space.ordered
-import analysis.normed_space.bounded_linear_maps
 
 /-!
 # Asymptotic equivalence

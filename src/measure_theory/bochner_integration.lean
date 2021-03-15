@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zhouhang Zhou, Yury Kudryashov, Sébastien Gouëzel
 -/
 import measure_theory.simple_func_dense
-import analysis.normed_space.bounded_linear_maps
+import analysis.normed_space.operator_norm
 import measure_theory.l1_space
 import topology.sequences
 

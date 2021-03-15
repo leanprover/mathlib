@@ -274,6 +274,15 @@ instance to_fun : has_coe_to_fun $ M →L[R] M₂ := ⟨λ _, M → M₂, λ f, 
 @[continuity]
 protected lemma continuous (f : M →L[R] M₂) : continuous f := f.2
 
+protected lemma continuous_at (f : M →L[R] M₂) {x : M} : continuous_at f x :=
+f.continuous.continuous_at
+
+protected lemma continuous_on (f : M →L[R] M₂) {s : set M} : continuous_on f s :=
+f.continuous.continuous_on
+
+protected lemma tendsto (f : M →L[R] M₂) (x : M) : tendsto f (𝓝 x) (𝓝 (f x)) :=
+f.continuous_at
+
 theorem coe_injective : function.injective (coe : (M →L[R] M₂) → (M →ₗ[R] M₂)) :=
 by { intros f g H, cases f, cases g, congr' }
 
@@ -281,7 +290,8 @@ by { intros f g H, cases f, cases g, congr' }
   (f : M →ₗ[R] M₂) = g ↔ f = g :=
 coe_injective.eq_iff
 
-theorem injective_coe_fn : function.injective (λ f : M →L[R] M₂, show M → M₂, from f) :=
+/-- The map `λ f : M →L[R] M₂, (f : M → M₂)` is injective. -/
+theorem injective_coe_fn : function.injective (λ (f : M →L[R] M₂) (x : M), f x) :=
 linear_map.coe_injective.comp coe_injective
 
 @[ext] theorem ext {f g : M →L[R] M₂} (h : ∀ x, f x = g x) : f = g :=
