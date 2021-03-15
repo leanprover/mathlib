@@ -1350,7 +1350,7 @@ begin
   rintro ⟨φ, hφ⟩,
   rw submodule.mem_dual_annihilator at hφ,
   refine ⟨0, _⟩,
-  ext f,
+  ext f, simp,
   sorry
 end
 
