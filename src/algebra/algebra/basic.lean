@@ -237,10 +237,9 @@ section prod
 variables (R A B)
 
 instance : algebra R (A × B) :=
-{ commutes' := by { rintro r ⟨a, b⟩, dsimp, rw [commutes r a, commutes r b] },
-  smul_def' := by { rintro r ⟨a, b⟩, dsimp, rw [smul_def r a, smul_def r b] },
-  .. prod.semimodule,
-  .. ring_hom.prod (algebra_map R A) (algebra_map R B) }
+{ smul_mul_assoc' := by { rintros t ⟨a₁, b₁⟩ ⟨a₂, b₂⟩, ext; simp, },
+  mul_smul_comm' := by { rintros t ⟨a₁, b₁⟩ ⟨a₂, b₂⟩, ext; simp, },
+  .. prod.semimodule, }
 
 variables {R A B}
 
@@ -251,27 +250,26 @@ end prod
 
 /-- Algebra over a subsemiring. -/
 instance of_subsemiring (S : subsemiring R) : algebra S A :=
-{ smul := λ s x, (s : R) • x,
-  commutes' := λ r x, algebra.commutes r x,
-  smul_def' := λ r x, algebra.smul_def r x,
-  .. (algebra_map R A).comp (subsemiring.subtype S) }
+ring_hom.to_algebra' ((algebra_map R A).comp (subsemiring.subtype S))
+  (λ x c, by simp [commutes])
 
 /-- Algebra over a subring. -/
 instance of_subring {R A : Type*} [comm_ring R] [ring A] [algebra R A]
   (S : subring R) : algebra S A :=
-{ smul := λ s x, (s : R) • x,
-  commutes' := λ r x, algebra.commutes r x,
-  smul_def' := λ r x, algebra.smul_def r x,
-  .. (algebra_map R A).comp (subring.subtype S) }
+algebra.of_subsemiring S.to_subsemiring
+
+@[simp]
+lemma algebra_map_of_subring_apply {R : Type*} [comm_ring R] (S : subring R) (x : S) :
+  algebra_map S R x = x :=
+(mul_one _).trans (mul_one _)
 
 lemma algebra_map_of_subring {R : Type*} [comm_ring R] (S : subring R) :
-  (algebra_map S R : S →+* R) = subring.subtype S := rfl
+  (algebra_map S R : S →+* R) = subring.subtype S :=
+by { ext, simp, }
 
 lemma coe_algebra_map_of_subring {R : Type*} [comm_ring R] (S : subring R) :
-  (algebra_map S R : S → R) = subtype.val := rfl
-
-lemma algebra_map_of_subring_apply {R : Type*} [comm_ring R] (S : subring R) (x : S) :
-  algebra_map S R x = x := rfl
+  (algebra_map S R : S → R) = subtype.val :=
+by { ext, simp, }
 
 section
 local attribute [instance] subset.comm_ring
@@ -282,20 +280,24 @@ def of_is_subring {R A : Type*} [comm_ring R] [ring A] [algebra R A]
   (S : set R) [is_subring S] : algebra S A :=
 algebra.of_subring S.to_subring
 
+@[simp]
+lemma is_subring_algebra_map_apply {R : Type*} [comm_ring R] (S : set R) [is_subring S] (x : S) :
+  algebra_map S R x = x :=
+(mul_one _).trans (mul_one _)
+
 lemma is_subring_coe_algebra_map_hom {R : Type*} [comm_ring R] (S : set R) [is_subring S] :
-  (algebra_map S R : S →+* R) = is_subring.subtype S := rfl
+  (algebra_map S R : S →+* R) = is_subring.subtype S :=
+by { ext, simp, }
 
 lemma is_subring_coe_algebra_map {R : Type*} [comm_ring R] (S : set R) [is_subring S] :
-  (algebra_map S R : S → R) = subtype.val := rfl
-
-lemma is_subring_algebra_map_apply {R : Type*} [comm_ring R] (S : set R) [is_subring S] (x : S) :
-  algebra_map S R x = x := rfl
+  (algebra_map S R : S → R) = subtype.val :=
+by { ext, simp, }
 
 lemma set_range_subset {R : Type*} [comm_ring R] {T₁ T₂ : set R} [is_subring T₁] (hyp : T₁ ⊆ T₂) :
   set.range (algebra_map T₁ R) ⊆ T₂ :=
 begin
   rintros x ⟨⟨t, ht⟩, rfl⟩,
-  exact hyp ht,
+  simpa using hyp ht,
 end
 
 end
@@ -367,13 +369,12 @@ namespace opposite
 variables {R A : Type*} [comm_semiring R] [semiring A] [algebra R A]
 
 instance : algebra R Aᵒᵖ :=
-{ to_ring_hom := (algebra_map R A).to_opposite $ λ x y, algebra.commutes _ _,
-  smul_def' := λ c x, unop_injective $
-    by { dsimp, simp only [op_mul, algebra.smul_def, algebra.commutes, op_unop] },
-  commutes' := λ r, op_induction $ λ x, by dsimp; simp only [← op_mul, algebra.commutes],
-  ..opposite.has_scalar A R }
+ring_hom.to_algebra' ((algebra_map R A).to_opposite $ λ x y, algebra.commutes _ _)
+(λ c x, unop_injective $
+    by { dsimp, simp only [op_mul, algebra.smul_def, algebra.commutes, op_unop] })
 
-@[simp] lemma algebra_map_apply (c : R) : algebra_map R Aᵒᵖ c = op (algebra_map R A c) := rfl
+@[simp] lemma algebra_map_apply (c : R) : algebra_map R Aᵒᵖ c = op (algebra_map R A c) :=
+sorry
 
 end opposite
 
@@ -711,6 +712,8 @@ end
 
 @[simp] lemma map_one : e 1 = 1 := e.to_mul_equiv.map_one
 
+@[simp] lemma map_smul : ∀ (r : R) x, e (r • x) = r • e x := sorry
+
 @[simp] lemma commutes : ∀ (r : R), e (algebra_map R A₁ r) = algebra_map R A₂ r :=
   e.commutes'
 
@@ -857,7 +860,7 @@ noncomputable def of_bijective (f : A₁ →ₐ[R] A₂) (hf : function.bijectiv
 def to_linear_equiv (e : A₁ ≃ₐ[R] A₂) : A₁ ≃ₗ[R] A₂ :=
 { to_fun    := e.to_fun,
   map_add'  := λ x y, by simp,
-  map_smul' := λ r x, by simp [algebra.smul_def''],
+  map_smul' := λ r x, by simp,
   inv_fun   := e.symm.to_fun,
   left_inv  := e.left_inv,
   right_inv := e.right_inv, }
@@ -1044,14 +1047,12 @@ variables [comm_semiring R] [comm_semiring S] [semiring A] [algebra R S] [algebr
 
 /-- `R ⟶ S` induces `S-Alg ⥤ R-Alg` -/
 instance comap.algebra : algebra R (comap R S A) :=
-{ smul := λ r x, (algebra_map R S r • x : A),
-  commutes' := λ r x, algebra.commutes _ _,
-  smul_def' := λ _ _, algebra.smul_def _ _,
-  .. (algebra_map S A).comp (algebra_map R S) }
+ring_hom.to_algebra' ((algebra_map S A).comp (algebra_map R S))
+  (λ r x, algebra.commutes _ _)
 
 /-- Embedding of `S` into `comap R S A`. -/
 def to_comap : S →ₐ[R] comap R S A :=
-{ commutes' := λ r, rfl,
+{ commutes' := λ r, sorry,
   .. algebra_map S A }
 
 theorem to_comap_apply (x) : to_comap R S A x = algebra_map S A x := rfl
@@ -1131,7 +1132,8 @@ variables [comm_semiring R] [semiring A] [algebra R A]
 
 /-- `algebra_map` as an `alg_hom`. -/
 def of_id : R →ₐ[R] A :=
-{ commutes' := λ _, rfl, .. algebra_map R A }
+{ commutes' := λ _, by simp, .. algebra_map R A }
+
 variables {R}
 
 theorem of_id_apply (r) : of_id R A r = algebra_map R A r := rfl
@@ -1319,7 +1321,8 @@ instance algebra (α) {r : comm_semiring α}
 
 @[simp] lemma algebra_map_apply (α) {r : comm_semiring α}
   [s : ∀ i, semiring (f i)] [∀ i, algebra α (f i)] (a : α) (i : I) :
-  algebra_map α (Π i, f i) a i = algebra_map α (f i) a := rfl
+  algebra_map α (Π i, f i) a i = algebra_map α (f i) a :=
+sorry
 
 -- One could also build a `Π i, R i`-algebra structure on `Π i, A i`,
 -- when each `A i` is an `R i`-algebra, although I'm not sure that it's useful.
