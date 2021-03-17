@@ -112,6 +112,8 @@ namespace algebra
 
 variables {R : Type u} {S : Type v} {A : Type w} {B : Type*}
 
+-- FIXME restore functional equivalents of these two:
+
 -- /-- Let `R` be a commutative semiring, let `A` be a semiring with a `semimodule R` structure.
 -- If `(r • 1) * x = x * (r • 1) = r • x` for all `r : R` and `x : A`, then `A` is an `algebra`
 -- over `R`. -/
@@ -139,8 +141,7 @@ section semiring
 variables [comm_semiring R] [comm_semiring S]
 variables [semiring A] [algebra R A] [semiring B] [algebra R B]
 
--- lemma smul_def'' (r : R) (x : A) : r • x = algebra_map R A r * x :=
--- algebra.smul_def' r x
+-- FIXME restore this:
 
 /--
 To prove two algebra structures on a fixed `[comm_semiring R] [semiring A]` agree,
@@ -164,18 +165,6 @@ it suffices to check the `algebra_map`s agree.
 --   { apply proof_irrel_heq, },
 --   { apply proof_irrel_heq, },
 -- end
-
--- @[priority 200] -- see Note [lower instance priority]
--- instance to_semimodule : semimodule R A :=
--- { one_smul := by simp [smul_def''],
---   mul_smul := by simp [smul_def'', mul_assoc],
---   smul_add := by simp [smul_def'', mul_add],
---   smul_zero := by simp [smul_def''],
---   add_smul := by simp [smul_def'', add_mul],
---   zero_smul := by simp [smul_def''] }
-
--- -- from now on, we don't want to use the following instance anymore
--- attribute [instance, priority 0] algebra.to_has_scalar
 
 lemma smul_def (r : R) (x : A) : r • x = algebra_map R A r * x :=
 begin
