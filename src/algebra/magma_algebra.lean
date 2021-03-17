@@ -184,6 +184,12 @@ lemma lift_apply (R : Type u) [comm_semiring R]
   (f : mul_hom M A) (a : magma_algebra R M) : lift R f a = a.sum (λ m t, t • f m) :=
 rfl
 
+@[simp] lemma lift_comp_of (R : Type u) [comm_semiring R]
+  {A : Type w} [non_unital_non_assoc_semiring A] [non_unital_non_assoc_algebra R A]
+  (g : non_unital_non_assoc_algebra_hom R (magma_algebra R M) A) :
+  lift R ((g : mul_hom (magma_algebra R M) A).comp (of R)) = g :=
+(lift R).apply_symm_apply g
+
 end magma_algebra
 
 end magma_algebra

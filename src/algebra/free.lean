@@ -98,6 +98,11 @@ def lift : (α → β) ≃ mul_hom (free_magma α) β :=
 
 @[simp, to_additive] lemma lift_of (x) : lift f (of x) = f x := rfl
 
+@[simp, to_additive] lemma of_lift_comp : (lift f) ∘ of = f := rfl
+
+@[simp] lemma lift_comp_of (F : mul_hom (free_magma α) β) : lift (F ∘ of) = F :=
+lift.apply_symm_apply F
+
 end free_magma
 
 /-- The unique magma homomorphism `free_magma α → free_magma β` that sends
