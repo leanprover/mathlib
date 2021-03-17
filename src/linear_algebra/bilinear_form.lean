@@ -1299,6 +1299,12 @@ begin
     exact hx w hw }
 end
 
+/-
+- Dual maps maybe?
+- Define the isomorphism between `V ≃ V**`
+- Show `foo U.dual_annihilator = U`
+-/
+
 @[simps apply]
 def foo_to_dual_annihilator (Φ : subspace K (module.dual K V)) :
   foo Φ →ₗ[K] Φ.dual_annihilator :=
